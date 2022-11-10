@@ -1,7 +1,10 @@
-from camera_calibration import capture_images, calibrate_camera
-from opencv_viewer import opencv_view
+from robot.cam_controller import Camera
+import asyncio
 
-#opencv_view()
-capture_images()
+camera = Camera()
 
-#calibrate_camera()
+camera.test_image_capture()
+#asyncio.run(camera.capture_cv_image(resize_image=False, show_image=True, show_big_image=False))
+
+#camera.show_live_image()
+camera.shutdown()

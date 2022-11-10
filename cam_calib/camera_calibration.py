@@ -35,6 +35,12 @@ def capture_images():
     else:
         config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
 
+    print("reset start")
+    ctx = rs.context()
+    devices = ctx.query_devices()
+    for dev in devices:
+        dev.hardware_reset()
+    print("reset done")
     # Start streaming
     pipeline.start(config)
     filename=11
