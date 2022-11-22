@@ -14,3 +14,7 @@
 - #### TODO
 - `robot/robot_controller.py`
 - To include the code related to robot communication.
+
+### Rviz launch
+- run `roslaunch panda_moveit_config demo.launch `
+- if we want to activate the tutorials execute the above command with `rviz_tutorial:=true` flag in the end.
