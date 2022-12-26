@@ -5,7 +5,6 @@ import cv2
 import torch
 import time
 import traceback
-import asyncio
 
 from common import config
 
@@ -71,26 +70,15 @@ class Camera:
 
     def _begin_image_acquisition(self):
         pass
-
-    async def async_func(self):
-        await self._pipeline.wait_for_frames() # <- replace this with your async code
-    # loop = asyncio.get_event_loop()
-    # coroutine = async_func()
-    # loop.run_until_complete(coroutine)
     
     def _capture_image(self):
         try:
-            
             #task_f = asyncio.create_task(self._pipeline.wait_for_frames())
             #loop = asyncio.get_event_loop()
             #bool, frames = self._pipeline.try_wait_for_frames()
             frames = self._pipeline.wait_for_frames()
-            #time.sleep(10)
-            color_frame = frames.get_color_frame()
-            # if not color_frame:
-            #     continue
-            #print(color_frame.shape)
-                
+            
+            color_frame = frames.get_color_frame()   
             return color_frame
         except Exception:
             print(traceback.format_exc())
@@ -104,7 +92,7 @@ class Camera:
             if bgr_image is None:
                 sys.exit("Could not read the image.")
 
-            cv2.imwrite('./images/sample/image_' + str(self.image_num) + '.png', bgr_image)
+            cv2.imwrite('../Results/Trajectory_Images/image_' + str(self.image_num) + '.png', bgr_image)
             self.image_num += 1
             if resize_image:
                 resized_image = cv2.resize(bgr_image, dsize=(config.RESIZED_IMAGE_SIZE, config.RESIZED_IMAGE_SIZE), interpolation=cv2.INTER_CUBIC)
@@ -142,19 +130,19 @@ class Camera:
         cv2.waitKey(1)
 
     def test_image_capture(self):
-        if 0:
+        if 1:
             while True:
                 self.show_live_image()
-        if 1:
+        if 0:
             images = []
-            for i in range(2):
+            for i in range(10):
                 t1 = time.time()
                 image = self.capture_cv_image()
                 t2 = time.time()
                 print('frame rate = ' + str(1.0/(t2-t1)))
                 images.append(image)
-            for i in range(2):
-                cv2.imwrite('./images/sample/image_' + str(i) + '.bmp', images[i])
+            for i in range(10):
+                cv2.imwrite('image_' + str(i) + '.bmp', images[i])
 
     def shutdown(self):
         print('Shutting down camera ...')

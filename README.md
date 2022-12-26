@@ -15,6 +15,25 @@
 - `robot/robot_controller.py`
 - To include the code related to robot communication.
 
-### Rviz launch
+### Rviz & Movit panda controller together
+- run `roslaunch panda_moveit_config franka_control.launch  robot_ip:=10.162.83.120 `
+- we can move the robot in rviz and it is executen ion the actual robot.
+
+## Rviz launch
 - run `roslaunch panda_moveit_config demo.launch `
 - if we want to activate the tutorials execute the above command with `rviz_tutorial:=true` flag in the end.
+
+
+****
+
+To train and test the method, there are four steps:
+
+1. "python run_data_collection.py" enables you to record a demonstration, then collect the two image datasets.
+
+2. "python run_dataset_creation.py" enables you to create the self-supervised image dataset, ready for training.
+
+3. "python run_training.py" enables you to train the coarse bottleneck pose estimator, and the last-inch bottleneck pose estimator.
+
+4. "python run_testing.py" enables you to test the controller on the task.
+
+****
