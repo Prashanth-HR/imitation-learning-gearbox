@@ -37,6 +37,7 @@ class ImageToPoseTrainerCoarse:
         self.num_debug_validation_examples = 10
         self.debug_training_examples = np.random.choice(self.image_to_pose_dataset.training_indices, size=self.num_debug_training_examples, replace=False)
         self.debug_validation_examples = np.random.choice(self.image_to_pose_dataset.validation_indices, size=self.num_debug_validation_examples, replace=False)
+        # Can remove the below line as its presence skips the above random choice line @HR
         self.debug_validation_examples = self.image_to_pose_dataset.validation_indices[:self.num_debug_validation_examples]
         # INITIALISE THE NETWORK
         # Set the GPU
@@ -161,7 +162,7 @@ class ImageToPoseTrainerCoarse:
                     print('Epoch ' + str(epoch_num) + ':')
                     print('\tRunning Average: Training loss: ' + str(running_average_training_losses[-1]) + ', Validation loss: ' + str(running_average_validation_losses[-1]))
                     print('\tTraining loss: ' + str(training_loss) + ', Validation loss: ' + str(validation_loss))
-                    print('\tValidation position error: ' + str(validation_position_error) + ', Validation orientation error: ' + str(validation_orientation_error))
+                    print('\tValidation position error: ' + str(validation_epoch_x_error+validation_epoch_y_error) + ', Validation orientation error: ' + str(validation_epoch_theta_error))
 
         # Save the error, so it can be used as a prior on uncertainty
         np.save('../Networks/' + str(self.task_name) + '/pose_to_uncertainty_validation_error.npy', min_validation_error)

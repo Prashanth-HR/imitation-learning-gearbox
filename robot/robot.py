@@ -1,66 +1,16 @@
 import sys
-import copy
-import rospy
+
 import moveit_commander
-from moveit_commander import Grasp, JointState, PlanningSceneInterface, RobotCommander, MoveGroupCommander
-
-import moveit_msgs.msg
-import geometry_msgs.msg
-from rospy_message_converter import message_converter
-from moveit_msgs.msg import PlanningScene
-from franka_core_msgs.msg import JointCommand
-from franka_core_msgs.msg import RobotState, EndPointState
-
-#from kdl_parser import kdl_tree_from_urdf_model
-from urdf_parser_py.urdf import URDF
-from robot import kdl_utils
-from robot import kdl_parser
+import numpy as np
 import PyKDL
-#import kdl_utils
+import rospy
+from moveit_commander import (MoveGroupCommander, PlanningSceneInterface,
+                              RobotCommander, RobotTrajectory)
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Header
+from urdf_parser_py.urdf import URDF
 
-try:
-    from math import pi, tau, dist, fabs, cos
-except:  # For Python 2 compatibility
-    from math import pi, fabs, cos, sqrt
-
-    tau = 2.0 * pi
-
-    def dist(p, q):
-        return sqrt(sum((p_i - q_i) ** 2.0 for p_i, q_i in zip(p, q)))
-
-
-from std_msgs.msg import String
-from moveit_commander.conversions import pose_to_list
-
-def all_close(goal, actual, tolerance):
-    """
-    Convenience method for testing if the values in two lists are within a tolerance of each other.
-    For Pose and PoseStamped inputs, the angle between the two quaternions is compared (the angle
-    between the identical orientations q and -q is calculated correctly).
-    @param: goal       A list of floats, a Pose or a PoseStamped
-    @param: actual     A list of floats, a Pose or a PoseStamped
-    @param: tolerance  A float
-    @returns: bool
-    """
-    if type(goal) is list:
-        for index in range(len(goal)):
-            if abs(actual[index] - goal[index]) > tolerance:
-                return False
-
-    elif type(goal) is geometry_msgs.msg.PoseStamped:
-        return all_close(goal.pose, actual.pose, tolerance)
-
-    elif type(goal) is geometry_msgs.msg.Pose:
-        x0, y0, z0, qx0, qy0, qz0, qw0 = pose_to_list(actual)
-        x1, y1, z1, qx1, qy1, qz1, qw1 = pose_to_list(goal)
-        # Euclidean distance
-        d = dist((x1, y1, z1), (x0, y0, z0))
-        # phi = angle between orientations
-        cos_phi_half = fabs(qx0 * qx1 + qy0 * qy1 + qz0 * qz1 + qw0 * qw1)
-        return d <= tolerance and cos_phi_half >= cos(tolerance / 2.0)
-
-    return True
-
+from robot import kdl_parser, kdl_utils
 
 class Panda:
 
@@ -73,27 +23,28 @@ class Panda:
         robot : RobotCommander = moveit_commander.RobotCommander()
         scene : PlanningSceneInterface = moveit_commander.PlanningSceneInterface()
         
+        
         arm_group : MoveGroupCommander = moveit_commander.MoveGroupCommander('panda_arm')
         gripper_group : MoveGroupCommander = moveit_commander.MoveGroupCommander('panda_hand')
-
-        # We can get a list of all the groups in the robot:
-        # print("============ Available Planning Groups:", robot.get_group_names())
-        # ['panda_arm', 'panda_hand', 'panda_manipulator']
         
 
-        # Sometimes for debugging it is useful to print the entire state of the
-        # print("============ Printing robot state")
-        # print(robot.get_current_state())
+        joint_subscriber = rospy.Subscriber("/joint_states", JointState, self._callbackJointState)
         
-        # Misc variables
-        self.box_name = ""
+        
+        # Control variables
         self.robot = robot
         self.scene = scene
         self.arm_group = arm_group
         self.gripper_group = gripper_group
 
+        # Monitoted robot states
+        self.robot_position = []
+        self.robot_velocity = []
+        self.robot_effort = []
+
         # URDF parser
         self.urdf = URDF.from_parameter_server(key='robot_description')
+        
         # KDL
         self.kdl_tree = kdl_parser.kdl_tree_from_urdf_model(self.urdf)
         self.base_link = self.urdf.get_root()
@@ -104,20 +55,27 @@ class Panda:
         self.jacobian_solver = PyKDL.ChainJntToJacSolver(self.arm_chain)
         self.ik_solver = PyKDL.ChainIkSolverVel_pinv(self.arm_chain)
         
-        #self.group_names = group_names
-        #self.panda_robot = panda_robot
+        # ToDo - get gripper stare and check for above threshold valve to decide open or closed
         self.is_gripper_open = True
-        
 
-    def open_gripper(self, wait = False):
+    def _callbackJointState(self, data):
+        self.robot_position = data.position
+        self.robot_velocity = data.velocity
+        self.robot_effort = data.effort
+
+    def open_gripper(self, wait = True):
         self.gripper_group.set_named_target('open')
-        self.gripper_group.go(wait = wait)
-        self.is_gripper_open = True
+        status = self.gripper_group.go(wait = wait)
+        if status == True : 
+            self.is_gripper_open = True
+        return status
 
-    def close_gripper(self, wait = False):
+    def close_gripper(self, wait = True):
         self.gripper_group.set_named_target('close')
-        self.gripper_group.go(wait = wait)
-        self.is_gripper_open = False
+        status = self.gripper_group.go(wait = wait)
+        if status == True : 
+            self.is_gripper_open = True
+        return status
 
     def switch_gripper(self):
         if self.is_gripper_open:
@@ -125,16 +83,13 @@ class Panda:
         else:
             self.open_gripper()
 
-    def move_to_joint_angles(self, joint_angles, wait = False):
+    def move_to_joint_angles(self, joint_angles, wait = True):
         arm_group = self.arm_group
         arm_group.set_joint_value_target(joint_angles)
         #move_group.go(joint_angles, True)
-        arm_group.go(wait = wait)
+        status = arm_group.go(wait = wait)
         arm_group.stop()
-
-        # For testing:
-        current_joints = arm_group.get_current_joint_values()
-        return all_close(joint_angles, current_joints, 0.01)
+        return status
         
 
     def move_to_pose(self, pose, wait=True):
@@ -189,6 +144,7 @@ class Panda:
         pass
 
     def set_endpoint_velocity_in_base_frame(self, endpoint_velocity_vector):
+        # Need ro work with RobotTrajectory
         pass
 
     def set_endpoint_velocity_in_endpoint_frame(self, endpoint_velocity_vector):
@@ -230,7 +186,13 @@ class Panda:
 
 
     def set_joint_velocities(self, joint_velocities):
-        pass
+        joint_state = self.arm_group.get_current_state()
+        joint_state = JointState()
+        joint_state.header = Header()
+        joint_state.header.stamp = rospy.Time.now()
+        joint_state.name = ['joint_a', 'joint_b']
+        joint_state.position = [0.17, 0.34]
+        self.arm_group.set_joint_value_target(joint_state)
 
     def set_light_colour(self, light, colour):
         pass
@@ -240,14 +202,21 @@ class Panda:
     # PRIVATE FUNCTIONS #
     #####################
     def _get_joint_velocities(self):
-        joint_velocities_dict = self.arm_group.joint_velocities()
-        pass
+        return self.robot_velocity
+
+    def _get_joint_efforts(self):
+        return self.robot_effort
 
     def _compute_jacobian(self):
         return self.arm_group.get_jacobian_matrix()
 
     def _is_moving(self):
-        pass
+        joint_velocities = self._get_joint_velocities()
+        max_velocity = np.max(np.abs(joint_velocities))
+        if max_velocity > 0.01:
+            return True
+        else:
+            return False
 
     def _cuff_button_callback(self, button_value):
         pass
@@ -263,12 +232,6 @@ class Panda:
     ###################
 
     def move_to_neutral(self, wait = True):
-        """
-            Send arm group to neutral pose defined using named state in urdf.
-
-            :param wait: if set to True, blocks till execution is complete
-            :type wait: bool
-        """
         self.arm_group.set_named_target("ready")
         return self.arm_group.go(wait)
 

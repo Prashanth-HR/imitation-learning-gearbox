@@ -25,7 +25,7 @@ if 0:
 # THEN, DO THIS TO COLLECT THE LAST-INCH DATASET
 # This collects images automatically by moving the robot into the bottleneck over multiple automatic demos
 # This is for the last-inch correction part of the trajectory
-if 1:
+if 0:
     num_trajectories = config.NO_OF_TRAJECTORIES
     data_collector = AutomaticDemoCollectorFine(task_name=task_name, total_num_trajectories=num_trajectories, num_timesteps_per_image=1, max_velocity_scale=config.MAX_VELOCITY_SCALE, max_accleration_scale=config.MAX_ACCLERATION_SCALE)
     data_collector.run()

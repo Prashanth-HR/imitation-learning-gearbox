@@ -78,40 +78,10 @@ class ImageToPoseDatasetCreatorFine:
             global_index_start = trajectory_start_indices[validation_trajectory_index]
             global_index_end = global_index_start + trajectory_lengths[validation_trajectory_index]
             validation_indices.extend(np.arange(global_index_start, global_index_end))
-        np.save(self.dataset_dir + '/training_indices_200.npy', training_indices)
-        np.save(self.dataset_dir + '/validation_indices_200.npy', validation_indices)
-        np.save(self.dataset_dir + '/images_200.npy', images)
-        np.save(self.dataset_dir + '/endpoint_to_bottleneck_poses_3dof_sin_cos_200.npy', endpoint_to_bottleneck_poses_3dof_sin_cos)
-        np.save(self.dataset_dir + '/endpoint_heights_200.npy', endpoint_heights)
-        # 50
-        num_trajectories = config.NO_OF_TRAJECTORIES
-        num_examples = 0
-        for i in range(num_trajectories):
-            num_examples += trajectory_lengths[i]
-        num_training_examples = int(0.8 * num_examples)
-        training_trajectory_indices = []
-        trajectory_index = 0
-        num_training_examples_so_far = 0
-        while num_training_examples_so_far < num_training_examples:
-            training_trajectory_indices.append(trajectory_index)
-            num_training_examples_so_far += trajectory_lengths[trajectory_index]
-            trajectory_index += 1
-        validation_trajectory_indices = range(trajectory_index, num_trajectories)
-        training_indices = []
-        for training_trajectory_index in training_trajectory_indices:
-            global_index_start = trajectory_start_indices[training_trajectory_index]
-            global_index_end = global_index_start + trajectory_lengths[training_trajectory_index]
-            training_indices.extend(np.arange(global_index_start, global_index_end))
-        validation_indices = []
-        for validation_trajectory_index in validation_trajectory_indices:
-            global_index_start = trajectory_start_indices[validation_trajectory_index]
-            global_index_end = global_index_start + trajectory_lengths[validation_trajectory_index]
-            validation_indices.extend(np.arange(global_index_start, global_index_end))
-        np.save(self.dataset_dir + '/training_indices_50.npy', training_indices)
-        np.save(self.dataset_dir + '/validation_indices_50.npy', validation_indices)
-        np.save(self.dataset_dir + '/images_50.npy', images)
-        np.save(self.dataset_dir + '/endpoint_to_bottleneck_poses_3dof_sin_cos_50.npy',
-                endpoint_to_bottleneck_poses_3dof_sin_cos)
-        np.save(self.dataset_dir + '/endpoint_heights_50.npy', endpoint_heights)
+        np.save(self.dataset_dir + '/training_indices_' + str(num_trajectories) + '.npy', training_indices)
+        np.save(self.dataset_dir + '/validation_indices_' + str(num_trajectories) + '.npy', validation_indices)
+        np.save(self.dataset_dir + '/images_' + str(num_trajectories) + '.npy', images)
+        np.save(self.dataset_dir + '/endpoint_to_bottleneck_poses_3dof_sin_cos_' + str(num_trajectories) + '.npy', endpoint_to_bottleneck_poses_3dof_sin_cos)
+        np.save(self.dataset_dir + '/endpoint_heights_' + str(num_trajectories) + '.npy', endpoint_heights)
 
         print('Created fine dataset with ' + str(len(training_indices)) + ' training examples and ' + str(len(validation_indices)) + ' validation examples.')

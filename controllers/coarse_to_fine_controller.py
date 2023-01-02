@@ -4,7 +4,7 @@ import rospy
 from controllers.coarse_controller import CoarseController
 from controllers.correction_controller import CorrectionController
 from robot import kdl_utils
-from common import utils
+from common import config, utils
 
 
 class CoarseToFineController:
@@ -16,8 +16,8 @@ class CoarseToFineController:
         self.camera = camera
         self.ros_rate = ros_rate
         # Set other variables
-        self.max_velocity_scale = 0.05
-        self.max_accletation_scale = 0.2
+        self.max_velocity_scale = config.MAX_VELOCITY_SCALE
+        self.max_accletation_scale = config.MAX_ACCLERATION_SCALE
         # Create the coarse controller
         self.coarse_controller = CoarseController(task_name=task_name, sawyer=sawyer, camera=camera, ros_rate=ros_rate, num_training_trajectories=num_training_trajectories)
         # Create the correction controller
@@ -30,8 +30,8 @@ class CoarseToFineController:
         bottleneck_transformation_vector = np.load(transformation_path)
         self.bottleneck_transformation_vertical_to_demo = kdl_utils.create_pose_from_vector(bottleneck_transformation_vector)
         self.bottleneck_height = bottleneck_pose_vector[2]
-        # Load the demo velocities
-        self.demo_velocities = np.load('../Data/' + str(task_name) + '/Single_Demo/Raw/demo_velocity_vectors.npy')
+        # Load the demo poses
+        self.demo_poses = np.load('../Data/' + str(task_name) + '/Single_Demo/Raw/demo_pose_vectors.npy', allow_pickle=True)
         # Setup ROS
         self.is_ros_running = True
         rospy.on_shutdown(self._shutdown)
@@ -52,12 +52,12 @@ class CoarseToFineController:
         print('FINE')
         demo_bottleneck = self.sawyer.get_endpoint_pose() * self.bottleneck_transformation_vertical_to_demo
         self.sawyer.move_to_pose(demo_bottleneck)
-        # Execute the demo velocities
-        num_steps = len(self.demo_velocities)
+        # Execute the demo poses
+        num_steps = len(self.demo_poses)
         step_num = 0
         print('Press < q > to end episode ...')
         while not utils.check_for_key('q') and step_num < num_steps and self.is_ros_running:
-            self.sawyer.set_endpoint_velocity_in_endpoint_frame(self.demo_velocities[step_num])
+            self.sawyer.move_to_pose(self.demo_poses[step_num])
             self.ros_rate.sleep()
             step_num += 1
         for _ in range(5):
@@ -66,7 +66,7 @@ class CoarseToFineController:
         # Optionally play the demo in reverse
         if 0:
             while not utils.check_for_key('q') and step_num < num_steps and self.is_ros_running:
-                self.sawyer.set_endpoint_velocity_in_endpoint_frame(-self.demo_velocities[num_steps - 1 - step_num])
+                self.sawyer.arm_group.go(-self.demo_poses[num_steps - 1 - step_num])
                 self.ros_rate.sleep()
                 step_num += 1
 

@@ -14,7 +14,7 @@ if 0:
 
 
 # THEN, DO THIS TO TRAIN THE LAST-INCH IMAGE CONTROLLER
-if 1:
+if 0:
     num_trajectories = config.NO_OF_TRAJECTORIES
     trainer = ImageToPoseTrainerFine(task_name=config.TASK_NAME, num_trajectories=num_trajectories)
     trainer.train()

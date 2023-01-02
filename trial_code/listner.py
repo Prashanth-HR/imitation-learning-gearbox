@@ -10,11 +10,15 @@ def callback(data):
     # rospy.loginfo_once(data.velocity)
     # rospy.loginfo_once(data.effort)
     
+def callbackJointState(data):
+    print(data.velocity)
+    
 def listener():
     rospy.init_node('listener', anonymous=True)
 
     #rospy.Subscriber("/move_group/fake_controller_joint_states", JointState, callback)
-    rospy.Subscriber("/move_group/monitored_planning_scene", PlanningScene, callback)
+    #rospy.Subscriber("/move_group/monitored_planning_scene", PlanningScene, callback)
+    rospy.Subscriber("/joint_states", JointState, callbackJointState)
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()

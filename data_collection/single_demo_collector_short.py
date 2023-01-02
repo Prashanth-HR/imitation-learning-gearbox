@@ -54,7 +54,7 @@ class SingleDemoCollectorShort:
         # And then create the transformation, in end-effector frame, between the vertical and demonstration bottleneck
         bottleneck_transformation_vertical_to_demo = bottleneck_pose_vertical.Inverse() * bottleneck_pose
         # Save the data
-        self._save_data(bottleneck_pose, bottleneck_pose_vertical, bottleneck_transformation_vertical_to_demo)
+        self._save_data(bottleneck_pose, bottleneck_pose_vertical, bottleneck_transformation_vertical_to_demo, demo_poses)
 
     # Function to allow the user to specify the bottleneck pose
     def _request_bottleneck_pose(self):
@@ -109,7 +109,7 @@ class SingleDemoCollectorShort:
             self.ros_rate.sleep()
 
     # Save the demo data
-    def _save_data(self, bottleneck_pose, bottleneck_pose_vertical, bottleneck_transformation_vertical_to_demo):
+    def _save_data(self, bottleneck_pose, bottleneck_pose_vertical, bottleneck_transformation_vertical_to_demo, demo_poses):
         print('Saving data ...')
         data_directory = '../Data/' + str(self.task_name) + '/Single_Demo/Raw'
         utils.create_or_clear_directory(data_directory)
@@ -120,6 +120,8 @@ class SingleDemoCollectorShort:
         bottleneck_transformation_vector = kdl_utils.create_vector_from_pose(bottleneck_transformation_vertical_to_demo)
         transformation_path = data_directory + '/bottleneck_transformation_vector_vertical_to_demo.npy'
         np.save(transformation_path, bottleneck_transformation_vector)
+        demo_poses_path = data_directory + '/demo_pose_vectors.npy'
+        np.save(demo_poses_path, demo_poses)
         print('\tData saved.')
 
     # Function that is called when Control-C is pressed

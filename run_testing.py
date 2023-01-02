@@ -4,7 +4,7 @@ from common import config
 
 
 # COARSE ONLY
-if 1:
+if 0:
     #estimation_method = 'oracle'
     #estimation_method = 'current_image'
     #estimation_method = 'first_image'

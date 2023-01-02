@@ -1,12 +1,15 @@
-import numpy as np
-import torch
-import rospy
 import pickle
+import traceback
 
-from common import utils
-from common import config
-from training.networks import ImageToPoseNetworkCoarse
+import numpy as np
+import rospy
+import torch
+from threading import Thread
+
+from common import config, utils
 from robot import kdl_utils
+from training.networks import ImageToPoseNetworkCoarse
+from sklearn.neural_network import MLPRegressor
 
 
 # CoarseController allows us to perform an episode of coarse control, for a particular task
@@ -19,12 +22,12 @@ class CoarseController:
         self.ros_rate = ros_rate
         self.num_training_trajectories = num_training_trajectories
         self.max_velocity_scale = config.MAX_VELOCITY_SCALE
-        self.max_accletation_scale = config.MAX_ACCLERATION_SCALE
+        self.max_accleration_scale = config.MAX_ACCLERATION_SCALE
         self.num_uncertainty_samples = 1000
         self.is_ros_running = True
         self.image_to_pose_network = None
         self.validation_error_variance = None
-        self.pose_to_uncertainty_regressor = None
+        self.pose_to_uncertainty_regressor : MLPRegressor = None
         rospy.on_shutdown(self._shutdown)
 
         # Load the network
@@ -38,14 +41,16 @@ class CoarseController:
         # Load the uncertainty predictor
         filename = '../Data/' + str(self.task_name) + '/Automatic_Coarse/Pose_To_Uncertainty_Predictor/regressor_' + str(self.num_training_trajectories) + '.pickle'
         with open(filename, 'rb') as handle:
-            data = pickle.load(handle)
-            print(data)
-            self.pose_to_uncertainty_regressor = data
-            print("And I'm OK")
+            self.pose_to_uncertainty_regressor = pickle.load(handle)
+
+        bottleneck_path = '../Data/' + str(self.task_name) + '/Single_Demo/Raw/bottleneck_pose_vector_vertical.npy'
+        bottleneck_pose_vector = np.load(bottleneck_path)
+        self.bottleneck_height = bottleneck_pose_vector[2]
 
     # This runs a single episode of coarse control, using a particular estimation method
-    def run_episode(self, estimation_method, bottleneck_height, bottleneck_pose=None):
+    def run_episode(self, estimation_method, bottleneck_pose=None):
         # Run a test episode with the specified method
+        bottleneck_height = self.bottleneck_height
         if estimation_method == 'oracle':
             self.run_episode_oracle(bottleneck_height, bottleneck_pose)
         elif estimation_method == 'current_image':
@@ -78,7 +83,7 @@ class CoarseController:
             # Compute the target pose in the live frame
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
             # Send the robot towards the target pose
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_current_image(self, bottleneck_height):
         estimated_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -93,7 +98,7 @@ class CoarseController:
             # Compute the target pose in the live frame
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
             # Send the robot towards the target pose
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_first_image(self, bottleneck_height):
         estimated_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -114,7 +119,7 @@ class CoarseController:
                 estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_best_image_dropout(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -134,7 +139,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_best_image_predicted(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -154,7 +159,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_batch(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -174,7 +179,7 @@ class CoarseController:
             # Compute the target pose in the live frame
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
             # Send the robot towards the target pose
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_batch_with_dropout_uncertainty(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -200,7 +205,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_batch_with_predicted_uncertainty(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -226,12 +231,14 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
             
     def run_episode_filtering_with_static_uncertainty(self, bottleneck_height):
         predicted_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
         estimated_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
         step_num = 0
+
+        
         while not utils.check_for_key('q') and not self._is_bottleneck_reached(bottleneck_height) and self.is_ros_running:
             # Make the prediction
             predicted_bottleneck_pose_3dof = self._predict_bottleneck_pose_3dof()
@@ -256,7 +263,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
             step_num += 1
 
     def run_episode_filtering_with_dropout_uncertainty(self, bottleneck_height):
@@ -286,7 +293,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
             step_num += 1
 
     def run_episode_filtering_with_predicted_uncertainty(self, bottleneck_height):
@@ -316,7 +323,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accletation_scale)
+            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
             step_num += 1
 
     #####################

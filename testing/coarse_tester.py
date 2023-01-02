@@ -36,9 +36,10 @@ class CoarseTester:
         while self.is_ros_running:
             print('New episode')
             # Move the robot to the starting joint angles
-            self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
+            #self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose
-            self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+            #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+            self.sawyer.move_to_neutral()
             # Run an episode using the coarse controller
             coarse_controller.run_episode(estimation_method)
 
@@ -46,6 +47,6 @@ class CoarseTester:
     # It is better to use is_ros_running rather than rospy.is_shutdown(), because sometimes rospy.is_shutdown() isn't triggered (e.g. if you do Control-C outside of the main ROS control loop, such as with doing position control with Intera, it does not flag that ROS has been shutdown until it is too late)
     def _shutdown(self):
         print('\nControl-C detected: Shutting down ...')
-        utils.reset_terminal()
+        #utils.reset_terminal()
         self.is_ros_running = False
         print('Shut down complete.\n')
