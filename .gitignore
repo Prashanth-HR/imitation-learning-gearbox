@@ -1,2 +1,5 @@
 __pycache__
 images/sample/
+logs/
+.vscode
+*.pyc
