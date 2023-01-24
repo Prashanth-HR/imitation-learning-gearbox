@@ -17,7 +17,7 @@ class Camera:
         self.image_num = 0
 
         self._initialise_camera()
-        rospy.on_shutdown(self.shutdown)
+        # rospy.on_shutdown(self.shutdown)
     
     def _initialise_camera(self):
         # Get device product line for setting a supporting resolution
@@ -45,12 +45,12 @@ class Camera:
             self._cam_config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
         
         # Uncoment is there is any issue with camera
-        # print("reset start")
-        # ctx = rs.context()
-        # devices = ctx.query_devices()
-        # for dev in devices:
-        #     dev.hardware_reset()
-        # print("reset done")
+        print("reset start")
+        ctx = rs.context()
+        devices = ctx.query_devices()
+        for dev in devices:
+            dev.hardware_reset()
+        print("reset done")
         
         # Start streaming
         self._pipeline.start(self._cam_config)

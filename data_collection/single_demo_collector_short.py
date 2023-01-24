@@ -37,7 +37,10 @@ class SingleDemoCollectorShort:
         # Set up the terminal for user input
         utils.set_up_terminal_for_key_check()
         # First, move the robot to its initial pose
-        print('Move to init pose')
+        print('### Move to Robot Neutral ###')
+        self.sawyer.move_to_neutral()
+        print('### Move to Init ###')
+        # TODO - write scrippt to request task Init and save in config file
         self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
         #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
         # Wait until the user has specified the bottleneck pose

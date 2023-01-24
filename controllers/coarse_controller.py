@@ -98,7 +98,7 @@ class CoarseController:
             # Compute the target pose in the live frame
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
             # Send the robot towards the target pose
-            self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
+            self.sawyer.move_towards_pose_cartesian(target_pose, self.max_velocity_scale, self.max_accleration_scale)
 
     def run_episode_first_image(self, bottleneck_height):
         estimated_bottleneck_poses_3dof = np.zeros([0, 3], dtype=np.float32)
@@ -323,6 +323,7 @@ class CoarseController:
             estimated_bottleneck_poses_3dof = np.concatenate((estimated_bottleneck_poses_3dof, [estimated_bottleneck_pose_3dof]), axis=0)
             # Send the robot towards the bottleneck
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(estimated_bottleneck_pose_3dof[0], estimated_bottleneck_pose_3dof[1], bottleneck_height, estimated_bottleneck_pose_3dof[2])
+            print('traget pose: {}'.format(target_pose))
             self.sawyer.move_towards_pose(target_pose, self.max_velocity_scale, self.max_accleration_scale)
             step_num += 1
 
