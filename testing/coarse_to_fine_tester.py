@@ -33,10 +33,11 @@ class CoarseToFineTester:
         # Loop over episodes
         while self.is_ros_running:
             print('New episode')
-            # Move the robot to the starting joint angles
-            self.sawyer.move_to_neutral()
+            #self.sawyer.move_to_neutral()
+            # Move the robot Init
+            self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose
-            #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+            self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
             print('Press n for next episode.')
             while not utils.check_for_key('n'):
                 pass

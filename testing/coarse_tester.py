@@ -35,11 +35,12 @@ class CoarseTester:
         # Loop over episodes
         while self.is_ros_running:
             print('New episode')
-            # Move the robot to the starting joint angles
-            #self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
+            #self.sawyer.move_to_neutral()
+            # Move the robot to Init
+            self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose
             #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
-            self.sawyer.move_to_neutral()
+            
             # Run an episode using the coarse controller
             coarse_controller.run_episode(estimation_method)
 

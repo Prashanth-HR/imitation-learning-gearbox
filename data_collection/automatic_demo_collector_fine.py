@@ -62,10 +62,11 @@ class AutomaticDemoCollectorFine:
         # First, move the robot to its initial pose
         print('#### Move to Neutral ####')
         self.sawyer.move_to_neutral()
-        #self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
+        print('#### Move to Init ####')
+        self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
         # First, move the robot to the bottleneck
         print('#### Move to Bottleneck pose ####')
-        self.sawyer.move_to_pose(bottleneck_pose_vertical)
+        self.sawyer.move_towards_pose(bottleneck_pose_vertical)
         # Loop over trajectories
         endpoint_pose_vectors_list = []
         trajectory_start_indices = []
@@ -109,7 +110,7 @@ class AutomaticDemoCollectorFine:
 
         # Multi threading to sync b/w robot and camera
         i=0
-        robot_exe_thread = Thread(target = self.sawyer.move_towards_pose, 
+        robot_exe_thread = Thread(target = self.sawyer.move_towards_pose_cartesian, 
                         args = (target_pose, self.max_velocity_scale, self.max_accleration_scale))
 
         while self.is_ros_running:

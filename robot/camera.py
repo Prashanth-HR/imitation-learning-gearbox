@@ -5,6 +5,7 @@ import cv2
 import torch
 import time
 import traceback
+import rospy
 
 from common import config
 
@@ -13,9 +14,10 @@ class Camera:
     def __init__(self):
         self._pipeline = None
         self._cam_config = None
-        #self._camera = None
         self.image_num = 0
+
         self._initialise_camera()
+        # rospy.on_shutdown(self.shutdown)
     
     def _initialise_camera(self):
         # Get device product line for setting a supporting resolution
@@ -42,6 +44,7 @@ class Camera:
         else:
             self._cam_config.enable_stream(rs.stream.color, 640, 480, rs.format.bgr8, 30)
         
+        # Uncoment is there is any issue with camera
         print("reset start")
         ctx = rs.context()
         devices = ctx.query_devices()
@@ -52,30 +55,9 @@ class Camera:
         # Start streaming
         self._pipeline.start(self._cam_config)
         print('Camera initialised.')
-
-    def _set_rgb(self):
-        pass
-
-    def _set_newest_image_only(self):
-        pass
-
-    def _set_image_size_to_max(self):
-        pass
-
-    def _set_auto_white_balance(self):
-        pass
-
-    def _set_auto_gain(self):
-        pass
-
-    def _begin_image_acquisition(self):
-        pass
     
     def _capture_image(self):
         try:
-            #task_f = asyncio.create_task(self._pipeline.wait_for_frames())
-            #loop = asyncio.get_event_loop()
-            #bool, frames = self._pipeline.try_wait_for_frames()
             frames = self._pipeline.wait_for_frames()
             
             color_frame = frames.get_color_frame()   
@@ -146,10 +128,8 @@ class Camera:
 
     def shutdown(self):
         print('Shutting down camera ...')
-
         self._pipeline.stop()
         del self._pipeline
         del self._cam_config
-
         print('\tCamera shutdown')
         

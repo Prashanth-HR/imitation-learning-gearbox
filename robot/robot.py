@@ -1,16 +1,14 @@
 import sys
-
+import copy
 import moveit_commander
 import numpy as np
 import PyKDL
 import rospy
 from moveit_commander import (MoveGroupCommander, PlanningSceneInterface,
-                              RobotCommander, RobotTrajectory)
+                              RobotCommander, conversions, RobotState)
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
-from urdf_parser_py.urdf import URDF
 
-from robot import kdl_parser, kdl_utils
 
 class Panda:
 
@@ -20,14 +18,13 @@ class Panda:
         moveit_commander.roscpp_initialize(sys.argv)
         #rospy.init_node("robot_controller", anonymous=True)        
         
-        robot : RobotCommander = moveit_commander.RobotCommander()
+        robot : RobotCommander = RobotCommander()
         scene : PlanningSceneInterface = moveit_commander.PlanningSceneInterface()
         
-        
-        arm_group : MoveGroupCommander = moveit_commander.MoveGroupCommander('panda_arm')
+        # available groups : panda_manipulator, panda_hand, panda_arm
+        arm_group : MoveGroupCommander = MoveGroupCommander('panda_manipulator')
         gripper_group : MoveGroupCommander = moveit_commander.MoveGroupCommander('panda_hand')
         
-
         joint_subscriber = rospy.Subscriber("/joint_states", JointState, self._callbackJointState)
         
         
@@ -41,19 +38,6 @@ class Panda:
         self.robot_position = []
         self.robot_velocity = []
         self.robot_effort = []
-
-        # URDF parser
-        self.urdf = URDF.from_parameter_server(key='robot_description')
-        
-        # KDL
-        self.kdl_tree = kdl_parser.kdl_tree_from_urdf_model(self.urdf)
-        self.base_link = self.urdf.get_root()
-        self.tip_link = 'panda_hand'
-        self.arm_chain = self.kdl_tree.getChain(self.base_link, self.tip_link)
-        self.forward_kinematics_solver = PyKDL.ChainFkSolverPos_recursive(self.arm_chain)
-        self.forward_velocity_solver = PyKDL.ChainFkSolverVel_recursive(self.arm_chain)
-        self.jacobian_solver = PyKDL.ChainJntToJacSolver(self.arm_chain)
-        self.ik_solver = PyKDL.ChainIkSolverVel_pinv(self.arm_chain)
         
         # ToDo - get gripper stare and check for above threshold valve to decide open or closed
         self.is_gripper_open = True
@@ -112,26 +96,92 @@ class Panda:
         arm_group.set_pose_target(pose=pose)
         status = arm_group.go(wait)
 
-        arm_group.stop()
         arm_group.clear_pose_targets()
         
         return status
+
+    def move_towards_pose(self, target_pose, max_velocity_scale=0.1, max_accletation_scale=0.1, wait=True, constraints=None):
+        arm_group = self.arm_group
+        # arm_group.set_max_velocity_scaling_factor(max_velocity_scale)
+        # arm_group.set_max_acceleration_scaling_factor(max_accletation_scale)
+        # Get the position and orientation components
+        position = target_pose.p
+        orientation = target_pose.M.GetQuaternion()
         
+        arm_group = self.arm_group
+        pose = arm_group.get_current_pose().pose
+
+        # TODO - Can convert this using the conversions.list_to_pose() method
+        pose.position.x = position[0]
+        pose.position.y = position[1]
+        pose.position.z = position[2]
+        pose.orientation.x = orientation[0]
+        pose.orientation.y = orientation[1]
+        pose.orientation.z = orientation[2]
+        pose.orientation.w = orientation[3]
+        # print('#### Target Pose ####')
+        # print(pose)
+
+        # To plan the cartesian uncomment below'
+        (plan, fraction) = arm_group.compute_cartesian_path([pose],1.0, 0.0, path_constraints=constraints)
+        #print('Constraints followed fraction: {}'.format(fraction))
+        plan = arm_group.retime_trajectory(
+            arm_group.get_current_state(), plan, max_velocity_scale, max_accletation_scale,
+            algorithm="time_optimal_trajectory_generation")
+        status = arm_group.execute(plan, wait)
+        
+        # To plan the joint motion uncommnet below
+        # arm_group.set_pose_target(pose=pose)
+        # status = arm_group.go(wait)
+        # arm_group.stop()
+        # arm_group.clear_pose_targets()
+        
+        return status   
+
+    def move_towards_pose_cartesian(self, target_pose, max_velocity_scale=0.1, max_accletation_scale=0.1, wait=True, constraints=None):
+        arm_group = self.arm_group
+        # Get the position and orientation components
+        target_position = target_pose.p
+        target_orientation = target_pose.M.GetQuaternion()
+        
+        current_position = self.get_endpoint_pose().p
+        pose = arm_group.get_current_pose().pose
+        # Sample along the cartesian line to plan the robot path
+        samples = np.linspace([*current_position], [*target_position], 5, True)
+        waypoints = []
+        for sample in samples:
+            wpose = arm_group.get_current_pose().pose
+            wpose.position.x = sample[0]
+            wpose.position.y = sample[1]
+            wpose.position.z = sample[2]
+            waypoints.append(copy.deepcopy(wpose))
+
+        # add final position and orientation
+        final_pose = arm_group.get_current_pose().pose
+        final_pose.position.x = target_position[0]
+        final_pose.position.y = target_position[1]
+        final_pose.position.z = target_position[2]
+        final_pose.orientation.x = target_orientation[0]
+        final_pose.orientation.y = target_orientation[1]
+        final_pose.orientation.z = target_orientation[2]
+        final_pose.orientation.w = target_orientation[3]
+        waypoints.append(copy.deepcopy(final_pose))
+
+        # To plan the cartesian uncomment below'
+        (plan, fraction) = arm_group.compute_cartesian_path(waypoints,1.0, 0.0, path_constraints=constraints)
+        plan = arm_group.retime_trajectory(
+            arm_group.get_current_state(), plan, max_velocity_scale, max_accletation_scale,
+            algorithm="time_optimal_trajectory_generation")
+        status = arm_group.execute(plan, wait)
+
+        return status   
 
     def get_endpoint_pose(self):
-        joint_angles = self.get_joint_angles()
-        # print('## Joint Angles ###')
-        # print(joint_angles)
-        joint_angles_kdl = kdl_utils.create_kdl_array_from_joint_angles(joint_angles)
-        # print('## Joint Angles KDL ###')
-        # print(joint_angles_kdl)
-        endpoint_pose = PyKDL.Frame()
-        # print('## End pose init ###')
-        # print(endpoint_pose)
-        self.forward_kinematics_solver.JntToCart(joint_angles_kdl, endpoint_pose)
-        # print('## End pose final ###')
-        # print(endpoint_pose)
-        return endpoint_pose
+        endpoint_pose = self.arm_group.get_current_pose().pose
+        pose_list = conversions.pose_to_list(endpoint_pose)
+        # endpoint frame
+        pose_frame = PyKDL.Frame(PyKDL.Rotation.Quaternion(*pose_list[3:]), PyKDL.Vector(*pose_list[:3]))
+        return pose_frame
 
     def get_joint_angles(self):
         return self.arm_group.get_current_joint_values()
@@ -150,41 +200,7 @@ class Panda:
     def set_endpoint_velocity_in_endpoint_frame(self, endpoint_velocity_vector):
         pass
 
-    def move_towards_pose(self, target_pose, max_velocity_scale=0.1, max_accletation_scale=0.1, wait=True):
-        arm_group = self.arm_group
-        # arm_group.set_max_velocity_scaling_factor(max_velocity_scale)
-        # arm_group.set_max_acceleration_scaling_factor(max_accletation_scale)
-        # Get the position and orientation components
-        position = target_pose.p
-        orientation = target_pose.M.GetQuaternion()
-
-        arm_group = self.arm_group
-        pose = arm_group.get_current_pose().pose
-
-        pose.position.x = position[0]
-        pose.position.y = position[1]
-        pose.position.z = position[2]
-        pose.orientation.x = orientation[0]
-        pose.orientation.y = orientation[1]
-        pose.orientation.z = orientation[2]
-        pose.orientation.w = orientation[3]
-        # print('#### Target Pose ####')
-        # print(pose)
-
-        # To plan the cartesian uncomment below'
-        (plan, fraction) = arm_group.compute_cartesian_path([pose],1.0, 0.0)
-        plan = arm_group.retime_trajectory(arm_group.get_current_state(), plan, max_velocity_scale, max_accletation_scale)
-        status = arm_group.execute(plan, wait)
-        
-        # To plan the joint motion uncommnet below
-        # arm_group.set_pose_target(pose=pose)
-        # status = arm_group.go(wait)
-        # arm_group.stop()
-        # arm_group.clear_pose_targets()
-        
-        return status
-
-
+    # Trial method to test setting velocities
     def set_joint_velocities(self, joint_velocities):
         joint_state = self.arm_group.get_current_state()
         joint_state = JointState()
@@ -201,6 +217,9 @@ class Panda:
     #####################
     # PRIVATE FUNCTIONS #
     #####################
+    def _get_joint_positions(self):
+        return self.robot_position
+
     def _get_joint_velocities(self):
         return self.robot_velocity
 

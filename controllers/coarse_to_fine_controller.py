@@ -51,12 +51,14 @@ class CoarseToFineController:
         # Move to the SE(3) bottleneck from the demo
         print('FINE')
         demo_bottleneck = self.sawyer.get_endpoint_pose() * self.bottleneck_transformation_vertical_to_demo
-        self.sawyer.move_to_pose(demo_bottleneck)
+        self.sawyer.move_towards_pose(demo_bottleneck)
         # Execute the demo poses
         num_steps = len(self.demo_poses)
         step_num = 0
         print('Press < q > to end episode ...')
         while not utils.check_for_key('q') and step_num < num_steps and self.is_ros_running:
+            # TODO - make the recorder positions relative to object
+            
             self.sawyer.move_to_pose(self.demo_poses[step_num])
             self.ros_rate.sleep()
             step_num += 1

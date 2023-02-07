@@ -70,9 +70,10 @@ class AutomaticDemoCollector:
         # print('###### Bottleneck vertical #####')
         # print(bottleneck_pose_vertical)
         bottleneck_pose_vertical_3dof = kdl_utils.create_pose_3dof_from_pose(bottleneck_pose_vertical)
+        
+        self.sawyer.move_to_neutral()
         # First, move the robot to its initial pose
         #self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
-        self.sawyer.move_to_neutral()
         # Loop over trajectories
         endpoint_pose_vectors_list = []
         trajectory_start_indices = []
@@ -87,8 +88,8 @@ class AutomaticDemoCollector:
             # First, move the robot to its init joint angles
             # Otherwise, after a few episodes, he accumulation of all the movements puts the robot in a state prone to singularities
             #self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
-            print('#### Move to Neutral ####')
-            self.sawyer.move_to_neutral()
+            print('#### Move to Init ####')
+            self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Then, define the initial pose
             # We sample using an inverted triangle distribution
             x_width_ratio = np.random.triangular(0, 0.5, 0.5)
@@ -106,7 +107,7 @@ class AutomaticDemoCollector:
             init_orientation = [config.DEMO_START_MID_ORI[0], init_theta_y, init_theta_z]
             init_pose = kdl_utils.create_pose_from_pos_ori_euler(init_position, init_orientation)
             print('#### Move to init pose with noise ####')
-            self.sawyer.move_to_pose(init_pose)
+            self.sawyer.move_towards_pose(init_pose)
             # Then, define a target pose, which is the bottleneck pose with some noise
             translation_noise = 0.05
             rotation_noise = 0.25 * np.pi
@@ -140,7 +141,7 @@ class AutomaticDemoCollector:
 
         # Multi threading to sync b/w robot and camera
         i=0
-        robot_exe_thread = Thread(target = self.sawyer.move_towards_pose, 
+        robot_exe_thread = Thread(target = self.sawyer.move_towards_pose_cartesian, 
                         args = (target_pose, self.max_velocity_scale, self.max_accleration_scale))
         
         while self.is_ros_running:
