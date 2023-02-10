@@ -1,0 +1,9 @@
+# For robot control
+panda_robot
+numpy==1.23.0
+numpy-quaternion==2020.5.11.13.33.35
+#  For Camera visual and control
+opencv-python
+pyrealsense2
+# For machine learning
+torch

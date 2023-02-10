@@ -66,7 +66,7 @@ class Sawyer:
 
     def get_endpoint_velocity_in_base_frame(self):
         linear, angular = self.robot.ee_velocity()
-        return PyKDL.Vector(*linear), PyKDL.Vector(*angular)
+        return np.array([*linear,*angular])
 
     def set_endpoint_velocity_in_base_frame(self, endpoint_velocity_vector):
         # convert this cartesian velocity to joint velocity
@@ -97,11 +97,11 @@ class Sawyer:
         time_to_target = max(time_using_rotation_speed, time_using_translation_speed)
         # If the time to the target is less than half a timestep, then don't bother moving, and return to say that the target has been reached
         print('Time to target: {}'.format(time_to_target))
-        if time_to_target < 1.0 :
+        if time_to_target < 1.0/30.0 :
             print('Stopping active controller')
             # active_controller = self.control_manager.current_controller
             # self.control_manager.stop_controller(active_controller)
-            self.robot.exit_control_mode(1)
+            self.robot.exit_control_mode()
             return True
         # Otherwise, move the robot towards the target
         else:
