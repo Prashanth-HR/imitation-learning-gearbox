@@ -43,3 +43,5 @@ To train and test the method, there are four steps:
 - `rostopic pub -1 /franka_control/error_recovery/goal franka_msgs/ErrorRecoveryActionGoal "{}"`
 - `rostopic pub -1 /franka_ros_interface/franka_control/error_recovery/goal franka_msgs/ErrorRecoveryActionGoal "{}"`
 
+### Graphical frontend for load, start, stop controllers 
+- `rosrun rqt_controller_manager rqt_controller_manager`

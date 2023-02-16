@@ -32,6 +32,10 @@ class AutomaticDemoCollector:
         self.control_time_step = None
         self.bottleneck_pose = None
 
+        # track image number
+        self.image_number = 0
+
+
     def run(self):
         # Set up the directories
         self.data_directory = '../Data/' + str(self.task_name) + '/Automatic_Coarse/Raw'
@@ -106,7 +110,7 @@ class AutomaticDemoCollector:
             # Move the robot to the target pose, whilst capturing images and 3dof poses
             trajectory_images_list, trajectory_endpoint_pose_vectors_list = self._move_to_target_and_record_data(target_pose)
             # Save the images
-            self._save_trajectory_images(trajectory_images_list, num_examples_so_far)
+            #self._save_trajectory_images(trajectory_images_list, num_examples_so_far)
             num_examples_so_far += len(trajectory_images_list)
             # Add this data to the list
             endpoint_pose_vectors_list += trajectory_endpoint_pose_vectors_list
@@ -124,10 +128,17 @@ class AutomaticDemoCollector:
     def _move_to_target_and_record_data(self, target_pose):
         images_list = []
         endpoint_pose_vectors_list = []
+        self.sawyer.robot.set_command_timeout(1.0)
         while self.is_ros_running:
             # Capture an image and add to the list
             image = self.camera.capture_cv_image(resize_image=False, show_image=True, show_big_image=True)
-            images_list.append(image)
+            #images_list.append(image)
+            image_path = self.data_directory + '/Images/image_' + str(self.image_number) + '.png'
+            cv2.imwrite(image_path, image)
+            self.image_number += 1
+            # Has to be removed later just a placeholder to get no of images captured in 1 trajectory
+            images_list.append(image_path)
+
             # Get the pose of the robot's endpoint
             endpoint_pose = self.sawyer.get_endpoint_pose()
             endpoint_pose_vector = kdl_utils.create_vector_from_pose(endpoint_pose)

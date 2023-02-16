@@ -30,13 +30,15 @@ class CoarseToFineTester:
         utils.set_up_terminal_for_key_check()
         # Create the coarse controller
         coarse_to_fine_controller = CoarseToFineController(task_name, self.sawyer, self.camera, self.ros_rate, 50)
+        
         # Loop over episodes
         while self.is_ros_running:
             print('New episode')
+            self.sawyer.robot.set_command_timeout(1.0)
             # Move the robot to the starting joint angles
             self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose
-            self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+            #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
             print('Press n for next episode.')
             while not utils.check_for_key('n'):
                 pass

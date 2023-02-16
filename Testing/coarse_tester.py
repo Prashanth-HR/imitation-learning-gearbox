@@ -38,8 +38,9 @@ class CoarseTester:
             # Move the robot to the starting joint angles
             self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose
-            self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+            #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
             # Run an episode using the coarse controller
+            self.sawyer.robot.set_command_timeout(1.0)
             coarse_controller.run_episode(estimation_method)
 
     # Function that is called when Control-C is pressed

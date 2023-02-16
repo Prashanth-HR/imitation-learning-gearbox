@@ -2,6 +2,7 @@ import numpy as np
 import rospy
 from panda_robot import PandaArm
 from franka_interface import ArmInterface, GripperInterface
+from franka_interface.robot_enable import RobotEnable
 import PyKDL
 import quaternion
 
@@ -12,13 +13,19 @@ class Sawyer:
         #PandaArm.__init__(self)
         #rospy.init_node("panda_demo") # initialise ros node
         self.robot = PandaArm()
+        self.robot_enable = RobotEnable()
         self.gripper = self.robot.get_gripper()
         self.move_group_inerface = self.robot.get_movegroup_interface()
         self.control_manager = self.robot.get_controller_manager()
 
+        self.initialize()
+
+    def initialize(self):
         self.is_gripper_open = True
+        # enable the robot if it is in error state
+        #self.robot_enable.enable() 
         # set the max wait-time for controller
-        #self.robot.set_command_timeout(1.0)
+        self.robot.set_command_timeout(1.0)
 
     def open_gripper(self):
         self.gripper.open()
@@ -66,7 +73,7 @@ class Sawyer:
 
     def get_endpoint_velocity_in_base_frame(self):
         linear, angular = self.robot.ee_velocity()
-        return np.array([*linear,*angular])
+        return PyKDL.Vector(*linear), PyKDL.Vector(*angular)
 
     def set_endpoint_velocity_in_base_frame(self, endpoint_velocity_vector):
         # convert this cartesian velocity to joint velocity
@@ -77,8 +84,21 @@ class Sawyer:
         self.robot.exec_velocity_cmd(joint_velocities)
         
     def set_endpoint_velocity_in_endpoint_frame(self, endpoint_velocity_vector):
-        print('Called : set_endpoint_velocity_in_endpoint_frame()')
-        pass
+        # Get the rotation between the base frame and the endpoint frame
+        endpoint_pose = self.get_endpoint_pose()
+        endpoint_rotation_matrix = endpoint_pose.M
+        # Rotate the endpoint velocity from the endpoint frame to the base frame
+        endpoint_translation_velocity = PyKDL.Vector(endpoint_velocity_vector[0], endpoint_velocity_vector[1],  endpoint_velocity_vector[2])
+        endpoint_rotation_velocity = PyKDL.Vector(endpoint_velocity_vector[3], endpoint_velocity_vector[4], endpoint_velocity_vector[5])
+        endpoint_translation_velocity_in_base_frame = endpoint_rotation_matrix * endpoint_translation_velocity
+        endpoint_rotation_velocity_in_base_frame = endpoint_rotation_matrix * endpoint_rotation_velocity
+        endpoint_velocity_vector_in_base_frame = np.array(
+            [endpoint_translation_velocity_in_base_frame[0], endpoint_translation_velocity_in_base_frame[1],
+             endpoint_translation_velocity_in_base_frame[2], endpoint_rotation_velocity_in_base_frame[0],
+             endpoint_rotation_velocity_in_base_frame[1], endpoint_rotation_velocity_in_base_frame[2]])
+        # set endpoint velocity vector in base frame
+        self.set_endpoint_velocity_in_base_frame(endpoint_velocity_vector_in_base_frame)
+        
 
     
     def move_towards_pose(self, target_frame, max_translation_speed, max_rotation_speed):
@@ -89,27 +109,42 @@ class Sawyer:
         # Convert this so that it is relative to the base frame
         current_to_target_axis_angle = current_frame.M * current_to_target_axis_angle_endpoint_frame
         current_to_target_translation = target_frame.p - current_frame.p
+        #print('translation:{}, rotation:{}'.format(current_to_target_translation, current_to_target_axis_angle))
         # Determine the time to the target, so that neither the translation or rotation speed limits are exceeded
         current_to_target_rotation_angle = np.linalg.norm(np.array([current_to_target_axis_angle[0], current_to_target_axis_angle[1], current_to_target_axis_angle[2]]))
         time_using_rotation_speed = current_to_target_rotation_angle / max_rotation_speed
         current_to_target_translation_distance = np.linalg.norm(np.array([current_to_target_translation[0], current_to_target_translation[1], current_to_target_translation[2]]))
         time_using_translation_speed = current_to_target_translation_distance / max_translation_speed
+        
+        # Need to comment this when roattion velocity works
+        #time_using_rotation_speed = - np.inf
         time_to_target = max(time_using_rotation_speed, time_using_translation_speed)
         # If the time to the target is less than half a timestep, then don't bother moving, and return to say that the target has been reached
-        print('Time to target: {}'.format(time_to_target))
-        if time_to_target < 1.0/30.0 :
-            print('Stopping active controller')
-            # active_controller = self.control_manager.current_controller
+        #print('Time to target: {}'.format(time_to_target))
+        if time_to_target <  1.0 / 10.0:
+            # print('Stopping velocity controller')
+            # self.set_endpoint_velocity_in_base_frame([1e-4] *6)
+            # active_controller = self.control_manager.joint_velocity_controllervel
             # self.control_manager.stop_controller(active_controller)
+            # self.control_manager.set_motion_controller(self.control_manager.default_controller)
+            self.robot.exec_velocity_cmd([1e-5] *7)
             self.robot.exit_control_mode()
+            rospy.sleep(1.0)
+            # Error recovery (as stoping the velocits controll sends the robot to error state)
+            self.robot_enable.enable()
             return True
         # Otherwise, move the robot towards the target
         else:
             # Then, determine how much to rotate / translate at each time step
             translation_velocity = current_to_target_translation / time_to_target
+            #translation_velocity = [0.0] *3
             rotation_velocity = current_to_target_axis_angle / time_to_target
+            
+            # Zero rotation velocity as the frames are misaligned
+            #rotation_velocity = [0.0] *3
             velocity_vector = np.array([translation_velocity[0], translation_velocity[1], translation_velocity[2], rotation_velocity[0], rotation_velocity[1], rotation_velocity[2]])
             # Apply this velocity vector
+            #print('velocity vec: {}'.format(velocity_vector))
             self.set_endpoint_velocity_in_base_frame(velocity_vector)
         
         return False
@@ -124,8 +159,8 @@ class Sawyer:
         return self.robot.velocities()
 
     def _compute_jacobian(self):
-        joint_angles = self.get_joint_angles()
-        return self.robot.jacobian(joint_angles)
+        #joint_angles = self.get_joint_angles()
+        return self.robot.jacobian()
 
     def _is_moving(self):
         joint_velocities = self._get_joint_velocities()

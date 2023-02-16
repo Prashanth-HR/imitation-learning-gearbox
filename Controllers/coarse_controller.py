@@ -40,8 +40,16 @@ class CoarseController:
         with open(filename, 'rb') as handle:
             self.pose_to_uncertainty_regressor = pickle.load(handle)
 
+        bottleneck_path = '../Data/' + str(self.task_name) + '/Single_Demo/Raw/bottleneck_pose_vector_vertical.npy'
+        bottleneck_pose_vector = np.load(bottleneck_path)
+        self.bottleneck_height = bottleneck_pose_vector[2]
+
     # This runs a single episode of coarse control, using a particular estimation method
-    def run_episode(self, estimation_method, bottleneck_height, bottleneck_pose=None):
+    def run_episode(self, estimation_method, bottleneck_height=None, bottleneck_pose=None):
+        
+        if bottleneck_height is None:
+            bottleneck_height = self.bottleneck_height
+
         # Run a test episode with the specified method
         if estimation_method == 'oracle':
             self.run_episode_oracle(bottleneck_height, bottleneck_pose)
@@ -403,6 +411,10 @@ class CoarseController:
     def _is_bottleneck_reached(self, bottleneck_height):
         true_endpoint_pose = self.sawyer.get_endpoint_pose()
         if true_endpoint_pose.p[2] < bottleneck_height:
+            self.sawyer.robot.exit_control_mode()
+            rospy.sleep(1.0)
+            # Error recovery (as stoping the velocits controll sends the robot to error state)
+            self.sawyer.robot_enable.enable()
             return True
         else:
             return False

@@ -38,14 +38,14 @@ class SingleDemoCollectorShort:
         utils.set_up_terminal_for_key_check()
         # First, move the robot to its initial pose
         self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
-        self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+        #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
         # Wait until the user has specified the bottleneck pose
         self._request_bottleneck_pose()
         # Collect the demo from the human
         demo_poses, demo_velocity_vectors = self._request_demo()
         # Chop off the first 90 examples (3 seconds), because there is usually vibration at the start due to fighting against the robot
-        demo_poses = demo_poses[90:]
-        demo_velocity_vectors = demo_velocity_vectors[90:]
+        # demo_poses = demo_poses[90:]
+        # demo_velocity_vectors = demo_velocity_vectors[90:]
         # Chop of the first few examples where there is zero velocity
         num_sequential_moving_examples = 0
         speed_threshold = 0.01
@@ -58,8 +58,8 @@ class SingleDemoCollectorShort:
             if num_sequential_moving_examples > 10:
                 demo_start_index = example_num - 10
                 break
-        demo_poses = demo_poses[demo_start_index:]
-        demo_velocity_vectors = demo_velocity_vectors[demo_start_index:]
+        demo_poses = demo_poses#[demo_start_index:]
+        demo_velocity_vectors = demo_velocity_vectors#[demo_start_index:]
         # Set the new bottleneck pose to be the one at the beginning of the new pose vectors, after the chopping off
         bottleneck_pose = demo_poses[0]
         # Then create the vertical bottleneck pose
