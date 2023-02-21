@@ -17,8 +17,8 @@ if 0:
 # THEN, DO THIS TO COLLECT THE COARSE IMAGE DATASET
 # This collects images automatically by moving the robot into the bottleneck over multiple automatic demos
 # This is for the coarse part of the trajectory
-if 1:
-    num_trajectories = 50
+if 0:
+    num_trajectories = config.NO_OF_TRAJECTORIES
     data_collector = AutomaticDemoCollector(task_name=task_name, total_num_trajectories=num_trajectories, num_timesteps_per_image=1, max_translation_speed=config.MAX_TRANSLATION_SPEED, max_rotation_speed=config.MAX_ROTATION_SPEED)
     data_collector.run()
 
@@ -26,6 +26,6 @@ if 1:
 # This collects images automatically by moving the robot into the bottleneck over multiple automatic demos
 # This is for the last-inch correction part of the trajectory
 if 0:
-    num_trajectories = 50
+    num_trajectories = config.NO_OF_TRAJECTORIES
     data_collector = AutomaticDemoCollectorFine(task_name=task_name, total_num_trajectories=num_trajectories, num_timesteps_per_image=1, max_translation_speed=config.MAX_TRANSLATION_SPEED, max_rotation_speed=config.MAX_ROTATION_SPEED)
     data_collector.run()

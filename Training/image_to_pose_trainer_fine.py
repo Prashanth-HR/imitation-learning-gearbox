@@ -155,7 +155,7 @@ class ImageToPoseTrainerFine:
                 graphs.show_loss_curves(training_losses, validation_losses, epochs, running_average_training_losses, running_average_validation_losses, running_average_epochs, self.results_directory + '/Graphs/loss_curves.png')
                 graphs.show_error_curves(validation_errors, epochs, self.results_directory + '/Graphs/validation_error_curves.png')
                 # Print out the losses for this epoch
-                if 1:
+                if 0:
                     print('Epoch ' + str(epoch_num) + ':')
                     print('\tRunning Average: Training loss: ' + str(running_average_training_losses[-1]) + ', Validation loss: ' + str(running_average_validation_losses[-1]))
                     print('\tTraining loss: ' + str(training_loss) + ', Validation loss: ' + str(validation_loss))

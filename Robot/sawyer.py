@@ -122,16 +122,7 @@ class Sawyer:
         # If the time to the target is less than half a timestep, then don't bother moving, and return to say that the target has been reached
         #print('Time to target: {}'.format(time_to_target))
         if time_to_target <  1.0 / 10.0:
-            # print('Stopping velocity controller')
-            # self.set_endpoint_velocity_in_base_frame([1e-4] *6)
-            # active_controller = self.control_manager.joint_velocity_controllervel
-            # self.control_manager.stop_controller(active_controller)
-            # self.control_manager.set_motion_controller(self.control_manager.default_controller)
-            self.robot.exec_velocity_cmd([1e-5] *7)
-            self.robot.exit_control_mode()
-            rospy.sleep(1.0)
-            # Error recovery (as stoping the velocits controll sends the robot to error state)
-            self.robot_enable.enable()
+            self._stop()
             return True
         # Otherwise, move the robot towards the target
         else:
@@ -169,6 +160,25 @@ class Sawyer:
             return True
         else:
             return False
+
+    def _stop(self):
+        '''
+        Stop the robot and set the controller to default controller
+        '''
+        self.robot.exec_velocity_cmd([0.0] *7)
+        while True:
+            dq_d = np.array(self.robot.dq_d)
+            if all(dq_d == 0.0):
+                #print('Switched to default controller')
+                #rospy.sleep(0.5)
+                #self.control_manager.set_motion_controller(self.control_manager.default_controller)
+                self.robot.set_command_timeout(0.05)
+                rospy.sleep(0.5)
+                self.robot.set_command_timeout(2.0)
+                #  print('Switched to default controller')
+                #print("Motion Finished")#
+                break
+                #return True
 
 def main():
     panda = Sawyer()

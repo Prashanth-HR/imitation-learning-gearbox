@@ -102,7 +102,6 @@ class AutomaticDemoCollectorFine:
     def _move_to_target_and_record_data(self, target_pose):
         images_list = []
         endpoint_pose_vectors_list = []
-        self.sawyer.robot.set_command_timeout(1.0)
         while self.is_ros_running:
             # Capture an image and add to the list
             image = self.camera.capture_cv_image(resize_image=False, show_image=True, show_big_image=True)

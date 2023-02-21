@@ -6,7 +6,7 @@ from Common import config
 
 # FIRST, DO THIS TO TRAIN THE COARSE IMAGE CONTROLLER
 if 0:
-    num_trajectories = 50
+    num_trajectories = config.NO_OF_TRAJECTORIES
     trainer = ImageToPoseTrainerCoarse(task_name=config.TASK_NAME, num_trajectories=num_trajectories)
     trainer.train()
     trainer = PoseToUncertaintyTrainer(task_name=config.TASK_NAME, num_trajectories=num_trajectories)
@@ -15,6 +15,6 @@ if 0:
 
 # THEN, DO THIS TO TRAIN THE LAST-INCH IMAGE CONTROLLER
 if 0:
-    num_trajectories = 50
+    num_trajectories = config.NO_OF_TRAJECTORIES
     trainer = ImageToPoseTrainerFine(task_name=config.TASK_NAME, num_trajectories=num_trajectories)
     trainer.train()

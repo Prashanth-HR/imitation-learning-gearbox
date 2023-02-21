@@ -29,12 +29,11 @@ class CoarseToFineTester:
     def run_episodes(self, task_name, estimation_method, use_correction):
         utils.set_up_terminal_for_key_check()
         # Create the coarse controller
-        coarse_to_fine_controller = CoarseToFineController(task_name, self.sawyer, self.camera, self.ros_rate, 50)
+        coarse_to_fine_controller = CoarseToFineController(task_name, self.sawyer, self.camera, self.ros_rate, config.NO_OF_TRAJECTORIES)
         
         # Loop over episodes
         while self.is_ros_running:
             print('New episode')
-            self.sawyer.robot.set_command_timeout(1.0)
             # Move the robot to the starting joint angles
             self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
             # Move to the starting pose

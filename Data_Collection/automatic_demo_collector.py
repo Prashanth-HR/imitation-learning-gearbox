@@ -128,7 +128,6 @@ class AutomaticDemoCollector:
     def _move_to_target_and_record_data(self, target_pose):
         images_list = []
         endpoint_pose_vectors_list = []
-        self.sawyer.robot.set_command_timeout(1.0)
         while self.is_ros_running:
             # Capture an image and add to the list
             image = self.camera.capture_cv_image(resize_image=False, show_image=True, show_big_image=True)
@@ -151,8 +150,6 @@ class AutomaticDemoCollector:
             self.control_time_step += 1
             # If the endpoint has reached the goal, break
             if has_reached_goal:
-                print('Reacged goal by velocity control')
-                #rospy.sleep(0.5)
                 break
         return images_list, endpoint_pose_vectors_list
 

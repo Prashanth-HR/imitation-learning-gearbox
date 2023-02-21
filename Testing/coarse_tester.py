@@ -30,7 +30,7 @@ class CoarseTester:
     def run(self, task_name, estimation_method):
 
         # Create the coarse controller
-        coarse_controller = CoarseController(task_name, self.sawyer, self.camera, self.ros_rate, 50)
+        coarse_controller = CoarseController(task_name, self.sawyer, self.camera, self.ros_rate, config.NO_OF_TRAJECTORIES)
 
         # Loop over episodes
         while self.is_ros_running:
@@ -40,7 +40,6 @@ class CoarseTester:
             # Move to the starting pose
             #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
             # Run an episode using the coarse controller
-            self.sawyer.robot.set_command_timeout(1.0)
             coarse_controller.run_episode(estimation_method)
 
     # Function that is called when Control-C is pressed

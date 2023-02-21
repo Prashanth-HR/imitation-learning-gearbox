@@ -411,10 +411,6 @@ class CoarseController:
     def _is_bottleneck_reached(self, bottleneck_height):
         true_endpoint_pose = self.sawyer.get_endpoint_pose()
         if true_endpoint_pose.p[2] < bottleneck_height:
-            self.sawyer.robot.exit_control_mode()
-            rospy.sleep(1.0)
-            # Error recovery (as stoping the velocits controll sends the robot to error state)
-            self.sawyer.robot_enable.enable()
             return True
         else:
             return False
