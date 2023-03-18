@@ -38,7 +38,7 @@ class SingleDemoCollectorShort:
         utils.set_up_terminal_for_key_check()
         # First, move the robot to its initial pose
         self.sawyer.move_to_joint_angles(config.ROBOT_INIT_JOINT_ANGLES)
-        #self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
+        self.sawyer.move_to_pose(config.ROBOT_INIT_POSE)
         # Wait until the user has specified the bottleneck pose
         self._request_bottleneck_pose()
         # Collect the demo from the human

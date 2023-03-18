@@ -5,6 +5,8 @@ from franka_interface import ArmInterface, GripperInterface
 from franka_interface.robot_enable import RobotEnable
 import PyKDL
 import quaternion
+import tf_conversions
+import copy
 
 class Sawyer:
 
@@ -23,34 +25,36 @@ class Sawyer:
     def initialize(self):
         self.is_gripper_open = True
         # enable the robot if it is in error state
-        #self.robot_enable.enable() 
+        self.robot_enable.enable() 
         # set the max wait-time for controller
-        self.robot.set_command_timeout(1.0)
+        self.robot.set_command_timeout(3.0)
 
     def open_gripper(self):
-        self.gripper.open()
-        self.is_gripper_open = True
+        status = self.gripper.open()
+        if status:
+            self.is_gripper_open = True
+        return status
 
     def close_gripper(self):
-        self.gripper.close()
-        self.is_gripper_open = False
+        status = self.gripper.close()
+        if status:
+            self.is_gripper_open = False
+        return status
 
     def switch_gripper(self):
         if self.is_gripper_open:
-            self.close_gripper()
+            return self.close_gripper()
         else:
-            self.open_gripper()
+            return self.open_gripper()
 
     def move_to_joint_angles(self, joint_angles):
-        #print('Move to joint angles')
         self.robot.move_to_joint_position(joint_angles)
 
     def move_to_pose(self, pose):
-        #print('move to pose')
         pos = [*pose.p]
         ori = quaternion.from_float_array(pose.M.GetQuaternion())
         self.robot.move_to_cartesian_pose(pos, ori)
-        while self._is_moving():
+        while self.is_moving():
             pass
 
     def get_endpoint_pose(self):
@@ -60,6 +64,13 @@ class Sawyer:
 
     def get_joint_angles(self):
         return self.robot.angles()
+
+    def get_joint_efforts(self):
+        return self.robot.efforts()
+
+    def get_endpoint_effort_in_base_frame(self):
+        endpoint_effort_dist = self.robot.endpoint_effort()
+        return endpoint_effort_dist['force'].tolist(), endpoint_effort_dist['torque'].tolist()
 
     def get_endpoint_velocity_in_endpoint_frame(self):
         ee_linear, ee_angular = self.get_endpoint_velocity_in_base_frame()
@@ -77,11 +88,11 @@ class Sawyer:
 
     def set_endpoint_velocity_in_base_frame(self, endpoint_velocity_vector):
         # convert this cartesian velocity to joint velocity
-        jacobian = self._compute_jacobian()
+        jacobian = self.compute_jacobian()
         jacobian_inverse = np.linalg.pinv(jacobian)
         joint_velocities = np.dot(jacobian_inverse, endpoint_velocity_vector)
         joint_velocities = np.squeeze(np.array(joint_velocities))
-        self.robot.exec_velocity_cmd(joint_velocities)
+        self.set_joint_velocities(joint_velocities)
         
     def set_endpoint_velocity_in_endpoint_frame(self, endpoint_velocity_vector):
         # Get the rotation between the base frame and the endpoint frame
@@ -117,74 +128,99 @@ class Sawyer:
         time_using_translation_speed = current_to_target_translation_distance / max_translation_speed
         
         # Need to comment this when roattion velocity works
-        #time_using_rotation_speed = - np.inf
         time_to_target = max(time_using_rotation_speed, time_using_translation_speed)
         # If the time to the target is less than half a timestep, then don't bother moving, and return to say that the target has been reached
-        #print('Time to target: {}'.format(time_to_target))
-        if time_to_target <  1.0 / 10.0:
-            self._stop()
+        #print('Time to target: {}'.format(time_to_target))            
+        if time_to_target <  1.0 / 30.0:
+            self.stop()
             return True
         # Otherwise, move the robot towards the target
         else:
             # Then, determine how much to rotate / translate at each time step
             translation_velocity = current_to_target_translation / time_to_target
-            #translation_velocity = [0.0] *3
             rotation_velocity = current_to_target_axis_angle / time_to_target
             
-            # Zero rotation velocity as the frames are misaligned
-            #rotation_velocity = [0.0] *3
-            velocity_vector = np.array([translation_velocity[0], translation_velocity[1], translation_velocity[2], rotation_velocity[0], rotation_velocity[1], rotation_velocity[2]])
-            # Apply this velocity vector
-            #print('velocity vec: {}'.format(velocity_vector))
+            velocity_vector = np.array([translation_velocity[0], translation_velocity[1], translation_velocity[2], rotation_velocity[2], rotation_velocity[1], rotation_velocity[0]])
             self.set_endpoint_velocity_in_base_frame(velocity_vector)
         
         return False
     
     def set_joint_velocities(self, joint_velocities):
-        self.exec_velocity_cmd(joint_velocities)
+        self.robot.exec_velocity_cmd(joint_velocities)
 
     def set_light_colour(self, clr1, clr2):
         pass
 
-    def _get_joint_velocities(self):
-        return self.robot.velocities()
+    def get_joint_velocities(self, include_gripper: bool = False):
+        return self.robot.velocities(include_gripper)
 
-    def _compute_jacobian(self):
+    def compute_jacobian(self):
         #joint_angles = self.get_joint_angles()
         return self.robot.jacobian()
 
-    def _is_moving(self):
-        joint_velocities = self._get_joint_velocities()
+    def is_moving(self):
+        joint_velocities = self.get_joint_velocities()
         max_velocity = np.max(np.abs(joint_velocities))
         if max_velocity > 0.01:
             return True
         else:
             return False
 
-    def _stop(self):
+    def stop(self):
         '''
         Stop the robot and set the controller to default controller
         '''
-        self.robot.exec_velocity_cmd([0.0] *7)
+        self.set_joint_velocities([0.0] *7)
         while True:
             dq_d = np.array(self.robot.dq_d)
             if all(dq_d == 0.0):
-                #print('Switched to default controller')
-                #rospy.sleep(0.5)
-                #self.control_manager.set_motion_controller(self.control_manager.default_controller)
                 self.robot.set_command_timeout(0.05)
                 rospy.sleep(0.5)
                 self.robot.set_command_timeout(2.0)
-                #  print('Switched to default controller')
-                #print("Motion Finished")#
                 break
-                #return True
+
+    def _interpolate_(self, current_frame, traget_frame, num=5):
+        '''
+        Interpolates b/w the source and targer frane by number(num) of samples.
+            Parameters:
+                source_frame(PyKDL.Frame)
+                target_frame(PyKDL.Frame)
+            Returns:
+                waypoints([PyKDL.Frame]): returns the list of interpolated frames including target.
+
+        '''
+        current_position = current_frame.p
+        current_orientation = current_frame.M.GetQuaternion()
+        target_position = traget_frame.p
+        target_orientation = traget_frame.M.GetQuaternion()
+
+        samples = np.linspace([*current_position], [*target_position], num=num)
+        waypoints = []
+        for sample in samples:
+            wpose = tf_conversions.toMsg(current_frame)
+            wpose.position.x = sample[0]
+            wpose.position.y = sample[1]
+            wpose.position.z = sample[2]
+            waypoints.append(copy.deepcopy(wpose))
+
+        # add final position and orientation
+        final_pose = tf_conversions.toMsg(current_frame)
+        final_pose.position.x = target_position[0]
+        final_pose.position.y = target_position[1]
+        final_pose.position.z = target_position[2]
+        final_pose.orientation.x = target_orientation[0]
+        final_pose.orientation.y = target_orientation[1]
+        final_pose.orientation.z = target_orientation[2]
+        final_pose.orientation.w = target_orientation[3]
+        waypoints.append(copy.deepcopy(final_pose))
+        
+        return waypoints
+
 
 def main():
     panda = Sawyer()
-    res = panda.move_to_neutral()
-    print(res)
-    #print(rospy.get_param(param_name=''))
+    panda.robot.move_to_neutral()
+    panda.switch_gripper()
 
 
 if __name__ == "__main__":

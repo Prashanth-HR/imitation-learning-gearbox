@@ -88,6 +88,8 @@ class Camera:
                     cv2.imshow('Live Image', bgr_image)
                 cv2.waitKey(1)
             return resized_image
+        except KeyboardInterrupt:
+            cv2.destroyAllWindows()
         except Exception:
             print(traceback.format_exc())   
 
