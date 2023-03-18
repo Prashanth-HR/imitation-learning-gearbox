@@ -1,7 +1,7 @@
-from training.image_to_pose_trainer_coarse import ImageToPoseTrainerCoarse
-from training.pose_to_uncertainty_trainer import PoseToUncertaintyTrainer
-from training.image_to_pose_trainer_fine import ImageToPoseTrainerFine
-from common import config
+from Training.image_to_pose_trainer_coarse import ImageToPoseTrainerCoarse
+from Training.pose_to_uncertainty_trainer import PoseToUncertaintyTrainer
+from Training.image_to_pose_trainer_fine import ImageToPoseTrainerFine
+from Common import config
 
 
 # FIRST, DO THIS TO TRAIN THE COARSE IMAGE CONTROLLER

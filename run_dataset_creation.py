@@ -1,7 +1,7 @@
-from common import config
-from common import utils
-from dataset_creation.image_to_pose_dataset_creator_coarse import ImageToPoseDatasetCreatorCoarse
-from dataset_creation.image_to_pose_dataset_creator_fine import ImageToPoseDatasetCreatorFine
+from Common import config
+from Common import utils
+from Dataset_Creation.image_to_pose_dataset_creator_coarse import ImageToPoseDatasetCreatorCoarse
+from Dataset_Creation.image_to_pose_dataset_creator_fine import ImageToPoseDatasetCreatorFine
 
 
 # FIRST, DO THIS TO CREATE THE DATASET FOR THE COARSE IMAGE CONTROLLER CONTROLLER
