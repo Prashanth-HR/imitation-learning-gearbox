@@ -411,6 +411,7 @@ class CoarseController:
     def _is_bottleneck_reached(self, bottleneck_height):
         true_endpoint_pose = self.sawyer.get_endpoint_pose()
         if true_endpoint_pose.p[2] < bottleneck_height:
+            self.sawyer.stop()
             return True
         else:
             return False

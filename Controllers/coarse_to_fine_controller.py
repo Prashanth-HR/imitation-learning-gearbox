@@ -69,7 +69,7 @@ class CoarseToFineController:
                 self.sawyer.set_endpoint_velocity_in_endpoint_frame(-self.demo_velocities[num_steps - 1 - step_num])
                 self.ros_rate.sleep()
                 step_num += 1
-
+        self.sawyer.stop()
     # Function that is called when Control-C is pressed
     # It is better to use is_ros_running rather than rospy.is_shutdown(), because sometimes rospy.is_shutdown() isn't triggered (e.g. if you do Control-C outside of the main ROS control loop, such as with doing position control with Intera, it does not flag that ROS has been shutdown until it is too late)
     def _shutdown(self):
