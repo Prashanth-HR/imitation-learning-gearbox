@@ -45,3 +45,7 @@ To train and test the method, there are four steps:
 
 ### Graphical frontend for load, start, stop controllers 
 - `rosrun rqt_controller_manager rqt_controller_manager`
+
+### Launch F/T sensor
+- `roslaunch bota_demo BFT_SENS_ECAT_M8.launch`
+- `roslaunch rokubimini_ethercat rokubimini_ethercat.launch`
