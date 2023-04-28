@@ -19,7 +19,7 @@ def create_pose_from_vector(pose_vector):
 def create_vector_from_pose(pose):
     position = pose.p
     rotation = pose.M.GetQuaternion()
-    pose_vector = np.array([position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3]], dtype=np.float32)
+    pose_vector = np.array([position[0], position[1], position[2], rotation[0], rotation[1], rotation[2], rotation[3]], dtype=np.float64)
     return pose_vector
 
 

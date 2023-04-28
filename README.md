@@ -47,5 +47,10 @@ To train and test the method, there are four steps:
 - `rosrun rqt_controller_manager rqt_controller_manager`
 
 ### Launch F/T sensor
-- `roslaunch bota_demo BFT_SENS_ECAT_M8.launch`
 - `roslaunch rokubimini_ethercat rokubimini_ethercat.launch`
+- additionally `roslaunch bota_demo BFT_SENS_ECAT_M8.launch`
+
+### Matlab
+- `matlab`
+- if graphs doesnot work `export MESA_LOADER_DRIVER_OVERRIDE=i965 && matlab`
+- if have any issues with CVX, open ~/Matlab/cvx in matlab and run `cvx_setup`

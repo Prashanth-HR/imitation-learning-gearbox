@@ -37,7 +37,6 @@ class FTSensor:
         rospy.on_shutdown(self._clean_shutdown)
 
     def _callback(self, sensor_data):
-        self.msg = sensor_data
         force = sensor_data.wrench.force
         torque = sensor_data.wrench.torque
         self.data = [force.x, force.y, force.z, torque.x, torque.y, torque.z]
@@ -60,6 +59,9 @@ class FTSensor:
             
     def _clean_shutdown(self):
         pass
+
+    def get_data(self):
+        return self.data
 
     def _run_graph(self):
         fig, (f_ax, m_ax) = plt.subplots(2, 1, sharex = True)

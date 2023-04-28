@@ -160,7 +160,7 @@ class ImageToPoseTrainerCoarse:
                     print('Epoch ' + str(epoch_num) + ':')
                     print('\tRunning Average: Training loss: ' + str(running_average_training_losses[-1]) + ', Validation loss: ' + str(running_average_validation_losses[-1]))
                     print('\tTraining loss: ' + str(training_loss) + ', Validation loss: ' + str(validation_loss))
-                    print('\tValidation position error: ' + str(validation_position_error) + ', Validation orientation error: ' + str(validation_orientation_error))
+                    print('\tValidation position error: ' + str(validation_epoch_x_error+validation_epoch_y_error) + ', Validation orientation error: ' + str(validation_epoch_theta_error))
 
         # Save the error, so it can be used as a prior on uncertainty
         np.save('../Networks/' + str(self.task_name) + '/pose_to_uncertainty_validation_error.npy', min_validation_error)
