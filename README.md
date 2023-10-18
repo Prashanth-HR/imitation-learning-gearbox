@@ -1,27 +1,6 @@
-### Run the real sense camera
-
-- `realsense-viewer`
-
-### Setup conda env
-- execute `conda env create -f environment_droplet.yml` to create the env with the necessary dependencies..
-- activate the created env using `conda activate im_ln`
-
-### Camera Controller
-- `robot/cam_controller.py` 
-- it has methods to test the camera alond with saving and displaying the images in the opencv window.
-
-### Robot Controller
-- #### TODO
-- `robot/robot_controller.py`
-- To include the code related to robot communication.
-
-### Rviz & Movit panda controller together
-- run `roslaunch panda_moveit_config franka_control.launch  robot_ip:=10.162.83.120 `
-- we can move the robot in rviz and it is executen ion the actual robot.
-
-## Rviz launch
-- run `roslaunch panda_moveit_config demo.launch `
-- if we want to activate the tutorials execute the above command with `rviz_tutorial:=true` flag in the end.
+## Intro
+This repository can record robot demonstrations, create datasets for learning to reach bottleneckpose in a self-supervised manner and run tests from the learned model to perform the demonstrated tasks.
+Since the Franka robot is interfaced using python, `franka -interface.launch` file in `franka-ros-interface` has to be evecuted before starting the project. 
 
 
 ****
@@ -38,7 +17,12 @@ To train and test the method, there are four steps:
 
 ****
 
-## Robot useful cmds
+
+
+
+
+
+## Additional - useful cmds
 ### Joint Error Recovery
 - `rostopic pub -1 /franka_control/error_recovery/goal franka_msgs/ErrorRecoveryActionGoal "{}"`
 - `rostopic pub -1 /franka_ros_interface/franka_control/error_recovery/goal franka_msgs/ErrorRecoveryActionGoal "{}"`

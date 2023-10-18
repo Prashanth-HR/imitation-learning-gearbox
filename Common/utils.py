@@ -9,6 +9,18 @@ import termios
 import tty
 from math import log10, floor
 import psutil
+import numpy as np
+
+
+def conv_numpy_moveit_q(q_numpy): 
+    w,x,y,z = q_numpy
+    q_moveit = np.array([x,y,z,w])
+    return q_moveit
+
+def conv_moveit_numpy_q(q_moveit): 
+    x,y,z,w = q_moveit
+    q_numpy = np.array([w,x,y,z])
+    return q_numpy
 
 
 ##########

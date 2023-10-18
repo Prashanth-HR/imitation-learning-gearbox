@@ -92,7 +92,7 @@ class AutomaticDemoCollector:
             y_sign = np.random.choice([-1, 1])
             init_y = config.DEMO_START_MID_POS[1] + y_sign * y_width_ratio * config.TASK_SPACE_WIDTH
             init_z = config.DEMO_START_MID_POS[2]
-            theta_width_ratio = np.random.triangular(0, 0.2, 0.2)
+            theta_width_ratio = np.random.triangular(0, 0.5, 0.5)
             theta_sign = np.random.choice([-1, 1])
             init_theta = config.DEMO_START_MID_ORI[2] + theta_sign * theta_width_ratio * config.TASK_SPACE_ANGLE
             init_position = [init_x, init_y, init_z]
@@ -145,7 +145,7 @@ class AutomaticDemoCollector:
             # Move towards the target
             has_reached_goal = self.sawyer.move_towards_pose(target_pose, self.max_translation_speed, self.max_rotation_speed)
             # Sleep until the next loop
-            #self.ros_rate.sleep()
+            self.ros_rate.sleep()
             # Update the control time step
             self.control_time_step += 1
             # If the endpoint has reached the goal, break

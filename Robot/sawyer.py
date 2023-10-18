@@ -1,12 +1,14 @@
 import numpy as np
 import rospy
 from panda_robot import PandaArm
+from franka_msgs.msg import ErrorRecoveryActionGoal
 from franka_interface import ArmInterface, GripperInterface
 from franka_interface.robot_enable import RobotEnable
 import PyKDL
 import quaternion
 import tf_conversions
 import copy
+from Common import utils
 
 class Sawyer:
 
@@ -14,12 +16,14 @@ class Sawyer:
 
         #PandaArm.__init__(self)
         #rospy.init_node("panda_demo") # initialise ros node
-        self.robot = PandaArm()
+        self.robot = PandaArm(reset_frames=True)
         self.robot_enable = RobotEnable()
         self.gripper = self.robot.get_gripper()
         self.move_group_inerface = self.robot.get_movegroup_interface()
         self.control_manager = self.robot.get_controller_manager()
 
+        # self.jacobian = None
+        # self.jacobian_inverse = None
         self.initialize()
 
     def initialize(self):
@@ -28,6 +32,9 @@ class Sawyer:
         self.robot_enable.enable() 
         # set the max wait-time for controller
         self.robot.set_command_timeout(3.0)
+        # set jacobian and inv 
+        # self.jacobian = self.compute_jacobian()
+        # self.jacobian_inverse = np.linalg.pinv(self.jacobian)
 
     def open_gripper(self):
         status = self.gripper.open()
@@ -53,13 +60,15 @@ class Sawyer:
     def move_to_pose(self, pose):
         pos = [*pose.p]
         ori = quaternion.from_float_array(pose.M.GetQuaternion())
-        self.robot.move_to_cartesian_pose(pos, ori)
+        ori_numpy = utils.conv_moveit_numpy_q(ori.components)
+        self.robot.move_to_cartesian_pose(pos, quaternion.from_float_array(ori_numpy))
         while self.is_moving():
             pass
 
     def get_endpoint_pose(self):
         p , q = self.robot.ee_pose()
-        frame = PyKDL.Frame(PyKDL.Rotation.Quaternion(*q.components), PyKDL.Vector(*p))
+        q_moveit = utils.conv_numpy_moveit_q(q.components)
+        frame = PyKDL.Frame(PyKDL.Rotation.Quaternion(*q_moveit), PyKDL.Vector(*p))
         return frame
 
     def get_joint_angles(self):
@@ -85,6 +94,10 @@ class Sawyer:
     def get_endpoint_velocity_in_base_frame(self):
         linear, angular = self.robot.ee_velocity()
         return PyKDL.Vector(*linear), PyKDL.Vector(*angular)
+
+    def set_gripper_velocity(self):
+        #self.gripper.
+        pass
 
     def set_endpoint_velocity_in_base_frame(self, endpoint_velocity_vector):
         # convert this cartesian velocity to joint velocity
@@ -129,18 +142,25 @@ class Sawyer:
         
         # Need to comment this when roattion velocity works
         time_to_target = max(time_using_rotation_speed, time_using_translation_speed)
+        reducer = 1.0
+        if time_to_target < 2:
+            reducer *= 1.0
+        if time_to_target < 1.5:
+            reducer *= 0.5
+        if time_to_target < 1:
+            reducer *= 0.5
         # If the time to the target is less than half a timestep, then don't bother moving, and return to say that the target has been reached
-        #print('Time to target: {}'.format(time_to_target))            
-        if time_to_target <  1.0 / 30.0:
+        # print('Time to target: {}'.format(time_to_target))            
+        if time_to_target <  1.0 / 10.0:
             self.stop()
             return True
         # Otherwise, move the robot towards the target
         else:
             # Then, determine how much to rotate / translate at each time step
-            translation_velocity = current_to_target_translation / time_to_target
-            rotation_velocity = current_to_target_axis_angle / time_to_target
+            translation_velocity = current_to_target_translation / time_to_target * reducer
+            rotation_velocity = current_to_target_axis_angle / time_to_target 
             
-            velocity_vector = np.array([translation_velocity[0], translation_velocity[1], translation_velocity[2], rotation_velocity[2], rotation_velocity[1], rotation_velocity[0]])
+            velocity_vector = np.array([translation_velocity[0], translation_velocity[1], translation_velocity[2], rotation_velocity[0], rotation_velocity[1], rotation_velocity[2]])
             self.set_endpoint_velocity_in_base_frame(velocity_vector)
         
         return False
@@ -165,6 +185,12 @@ class Sawyer:
             return True
         else:
             return False
+
+    def error_recovery(self):
+        pub = rospy.Publisher('/franka_ros_interface/franka_control/error_recovery/goal', ErrorRecoveryActionGoal,
+                              queue_size=10)
+        pub.publish(ErrorRecoveryActionGoal())
+        
 
     def stop(self):
         '''
