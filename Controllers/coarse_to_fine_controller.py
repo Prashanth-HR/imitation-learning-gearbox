@@ -54,6 +54,7 @@ class CoarseToFineController:
         self.sawyer.move_to_pose(demo_bottleneck)
         # Execute the demo velocities
         num_steps = len(self.demo_velocities)
+        print("Number of velocities: {}".format(num_steps))
         step_num = 0
         print('Press < q > to end episode ...')
         while not utils.check_for_key('q') and step_num < num_steps and self.is_ros_running:
@@ -64,7 +65,7 @@ class CoarseToFineController:
             self.ros_rate.sleep()
         step_num = 0
         # Optionally play the demo in reverse
-        if 0:
+        if 1:
             while not utils.check_for_key('q') and step_num < num_steps and self.is_ros_running:
                 self.sawyer.set_endpoint_velocity_in_endpoint_frame(-self.demo_velocities[num_steps - 1 - step_num])
                 self.ros_rate.sleep()

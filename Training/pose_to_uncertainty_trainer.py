@@ -36,9 +36,9 @@ class PoseToUncertaintyTrainer:
             image_tensor = torch.unsqueeze(torch.tensor(image_to_pose_dataset.images[example_id]), dim=0)
             endpoint_height_tensor = torch.unsqueeze(torch.unsqueeze(torch.tensor(image_to_pose_dataset.endpoint_heights[example_id]), dim=0), dim=0)
             prediction = image_to_pose_network.forward(image_tensor, endpoint_height_tensor).detach().cpu().numpy()[0]
-            real_prediction = np.array([prediction[0], prediction[1], np.arctan2(np.sin(prediction[2]), np.cos(prediction[2]))])
+            real_prediction = np.array([prediction[0], prediction[1], np.arctan2(prediction[2], prediction[3])])
             # Compute the error
-            true_real_pose = np.array([image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 0], image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 1], np.arctan2(np.sin(image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 2]), np.cos(image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 2]))])
+            true_real_pose = np.array([image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 0], image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 1], np.arctan2(image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 2], image_to_pose_dataset.endpoint_to_bottleneck_poses[example_id, 3])])
             x_error = np.fabs(real_prediction[0] - true_real_pose[0])
             y_error = np.fabs(real_prediction[1] - true_real_pose[1])
             theta_error = utils.compute_absolute_angle_difference(real_prediction[2], true_real_pose[2])
@@ -101,3 +101,5 @@ class PoseToUncertaintyTrainer:
         with open(filename, 'wb') as handle:
             pickle.dump(reg, handle)
         np.save('../Data/' + str(self.task_name) + '/Automatic_Coarse/Pose_To_Uncertainty_Predictor/average_error_' + str(self.num_trajectories) + '.npy', average_error)
+        # np.save('../Data/' + str(self.task_name) + '/Automatic_Coarse/Pose_To_Uncertainty_Predictor/poses_' + str(self.num_trajectories) + '.npy', poses)
+        # np.save('../Data/' + str(self.task_name) + '/Automatic_Coarse/Pose_To_Uncertainty_Predictor/errors_' + str(self.num_trajectories) + '.npy', errors)

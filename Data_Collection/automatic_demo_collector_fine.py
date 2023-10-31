@@ -104,7 +104,7 @@ class AutomaticDemoCollectorFine:
         endpoint_pose_vectors_list = []
         while self.is_ros_running:
             # Capture an image and add to the list
-            image = self.camera.capture_cv_image(resize_image=False, show_image=True, show_big_image=True)
+            image = self.camera.capture_cv_image(resize_image=False, show_image=False, show_big_image=False)
             #images_list.append(image)
             image_path = self.data_directory + '/Images/image_' + str(self.image_number) + '.png'
             cv2.imwrite(image_path, image)

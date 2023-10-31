@@ -43,9 +43,10 @@ class SingleDemoCollectorShort:
         self._request_bottleneck_pose()
         # Collect the demo from the human
         demo_poses, demo_velocity_vectors = self._request_demo()
-        # Chop off the first 90 examples (3 seconds), because there is usually vibration at the start due to fighting against the robot
-        demo_poses = demo_poses[90:]
-        demo_velocity_vectors = demo_velocity_vectors[90:]
+        # Chop off the first 0 examples (3 seconds), because there is usually vibration at the start due to fighting against the robot
+        # Chop off first and last 90(around 3 secs) where I move to and from robot for keyboard triggers
+        #demo_poses = demo_poses[90:-90]
+        #demo_velocity_vectors = demo_velocity_vectors[90:-90]
         # Chop of the first few examples where there is zero velocity
         num_sequential_moving_examples = 0
         speed_threshold = 0.01
