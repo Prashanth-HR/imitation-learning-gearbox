@@ -105,7 +105,7 @@ class AutomaticDemoCollector:
             target_pose_3dof = np.copy(bottleneck_pose_vertical_3dof)
             target_pose_3dof[0] += np.random.uniform(-translation_noise, translation_noise)
             target_pose_3dof[1] += np.random.uniform(-translation_noise, translation_noise)
-            #target_pose_3dof[2] += np.random.uniform(-rotation_noise, rotation_noise)
+            target_pose_3dof[2] += np.random.uniform(-rotation_noise, rotation_noise)
             target_pose = kdl_utils.create_vertical_pose_from_x_y_z_theta(target_pose_3dof[0], target_pose_3dof[1], bottleneck_pose_vertical.p[2], target_pose_3dof[2])
             # Move the robot to the target pose, whilst capturing images and 3dof poses
             trajectory_images_list, trajectory_endpoint_pose_vectors_list = self._move_to_target_and_record_data(target_pose)

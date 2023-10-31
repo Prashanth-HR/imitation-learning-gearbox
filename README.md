@@ -1,6 +1,7 @@
 ## Intro
 This repository can record robot demonstrations, create datasets for learning to reach bottleneckpose in a self-supervised manner and run tests from the learned model to perform the demonstrated tasks.
-Since the Franka robot is interfaced using python, `franka -interface.launch` file in `franka-ros-interface` has to be evecuted before starting the project. 
+Since the Franka robot is interfaced using python, `franka -interface.launch` file in `franka-ros-interface` has to be evecuted before starting the project, which is done in the `franka_interface.launch` file under `tele_operation` project using the cmd. 
+- `roslaunch tele_operation franka_interface.launch `
 
 
 ****
